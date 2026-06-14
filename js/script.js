@@ -891,98 +891,37 @@ class Preloader {
         this.progressBar = elements.progressBar;
         this.progressText = elements.progressText;
         this.progress = 0;
-        this.totalAssets = 0;
-        this.loadedAssets = 0;
         this.isComplete = false;
-        this.trackAssets();
+        this.tick = setInterval(() => this.advance(), 400);
         this.safetyTimer();
+    }
+
+    advance() {
+        if (this.isComplete) return;
+        this.progress += Math.random() * 18 + 8;
+        if (this.progress >= 100) this.progress = 100;
+        this.updateUI();
+        if (this.progress >= 100) this.finish();
+    }
+
+    finish() {
+        this.isComplete = true;
+        clearInterval(this.tick);
     }
 
     safetyTimer() {
         setTimeout(() => {
             if (!this.isComplete) {
                 this.progress = 100;
-                this.loadedAssets = this.totalAssets;
-                this.isComplete = true;
                 this.updateUI();
+                this.finish();
             }
-        }, 12000);
-    }
-
-    trackAssets() {
-        const images = document.querySelectorAll('img');
-        const audio = document.querySelectorAll('audio');
-        const totalImages = images.length;
-        const totalAudio = audio.length;
-        this.totalAssets = totalImages + totalAudio + 1;
-
-        if (totalImages === 0 && totalAudio === 0) {
-            this.simulateProgress();
-            return;
-        }
-
-        images.forEach(img => {
-            if (img.complete) {
-                this.assetLoaded();
-            } else {
-                img.addEventListener('load', () => this.assetLoaded());
-                img.addEventListener('error', () => this.assetLoaded());
-            }
-        });
-
-        audio.forEach(a => {
-            if (a.readyState >= 2) {
-                this.assetLoaded();
-            } else {
-                a.addEventListener('canplaythrough', () => this.assetLoaded());
-                a.addEventListener('error', () => this.assetLoaded());
-            }
-        });
-
-        this.loadFonts();
-    }
-
-    loadFonts() {
-        if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(() => this.assetLoaded());
-        } else {
-            setTimeout(() => this.assetLoaded(), 1000);
-        }
-    }
-
-    assetLoaded() {
-        this.loadedAssets++;
-        this.progress = Math.min(100, Math.round((this.loadedAssets / this.totalAssets) * 100));
-        this.updateUI();
-        if (this.loadedAssets >= this.totalAssets) {
-            this.isComplete = true;
-            setTimeout(() => this.autoDismiss(), 800);
-        }
-    }
-
-    simulateProgress() {
-        const interval = setInterval(() => {
-            this.progress += Math.random() * 15 + 5;
-            if (this.progress >= 100) {
-                this.progress = 100;
-                this.isComplete = true;
-                clearInterval(interval);
-                setTimeout(() => this.autoDismiss(), 800);
-            }
-            this.updateUI();
-        }, 300);
+        }, 5000);
     }
 
     updateUI() {
-        if (this.progressBar) this.progressBar.style.width = this.progress + '%';
-        if (this.progressText) this.progressText.textContent = this.progress + '%';
-    }
-
-    autoDismiss() {
-        const loader = document.getElementById('loader');
-        if (loader && !loader.classList.contains('hidden')) {
-            loader.click();
-        }
+        if (this.progressBar) this.progressBar.style.width = Math.round(this.progress) + '%';
+        if (this.progressText) this.progressText.textContent = Math.round(this.progress) + '%';
     }
 }
 
