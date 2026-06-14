@@ -404,17 +404,12 @@ class CountdownTimer {
             months += 12;
         }
 
-        // Live clock - hours, minutes, seconds from current time
-        const hours = h;
-        const minutes = min;
-        const seconds = s;
-
         if (elements.togetherYears) elements.togetherYears.textContent = years;
         if (elements.togetherMonths) elements.togetherMonths.textContent = months;
         if (elements.togetherDays) elements.togetherDays.textContent = days2;
-        if (elements.togetherHours) elements.togetherHours.textContent = hours;
-        if (elements.togetherMinutes) elements.togetherMinutes.textContent = minutes;
-        if (elements.togetherSeconds) elements.togetherSeconds.textContent = seconds;
+        if (elements.togetherHours) elements.togetherHours.textContent = h;
+        if (elements.togetherMinutes) elements.togetherMinutes.textContent = min;
+        if (elements.togetherSeconds) elements.togetherSeconds.textContent = s;
     }
 
     ordinal(n) {
