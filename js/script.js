@@ -344,7 +344,6 @@ class CountdownTimer {
         this.startY = 2016;
         this.startM = 5; // June (0-indexed)
         this.startD = 14;
-        this.celebrated = false;
         this.update();
         setInterval(() => this.update(), 1000);
     }
@@ -357,14 +356,6 @@ class CountdownTimer {
         const h = ist.getHours();
         const min = ist.getMinutes();
         const s = ist.getSeconds();
-
-        // Anniversary check (14 June)
-        const totalYears = y - this.startY;
-        if (m === 5 && d === 14 && totalYears > 0 && !this.celebrated) {
-            this.celebrated = true;
-            this.showCelebration(totalYears);
-        }
-        if (m !== 5 || d !== 14) this.celebrated = false;
 
         // Next 14 June
         let nextY = y;
@@ -425,29 +416,6 @@ class CountdownTimer {
                 el.style.opacity = '1';
             }, 150);
         }
-    }
-
-    showCelebration(years) {
-        if (document.getElementById('specialOverlay')) return;
-        const name = `${years}${this.ordinal(years)} Anniversary`;
-        const overlay = document.createElement('div');
-        overlay.id = 'specialOverlay';
-        overlay.innerHTML = `
-            <div class="celebration-content">
-                <div class="celebration-emoji">🎉</div>
-                <h1 class="celebration-title">Happy ${name} Anniversary!</h1>
-                <p class="celebration-subtitle">Today we celebrate our love</p>
-                <div class="celebration-hearts">
-                    <span>❤️</span><span>💕</span><span>💖</span><span>💗</span><span>💝</span>
-                </div>
-                <button class="celebration-btn" onclick="this.parentElement.parentElement.remove()">
-                    I Love You Too ❤️
-                </button>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-        setTimeout(() => new ConfettiEffect().create(), 500);
-        this.celebInterval = setInterval(() => new ConfettiEffect().create(), 3000);
     }
 }
 
