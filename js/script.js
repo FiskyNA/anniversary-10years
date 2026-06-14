@@ -47,6 +47,9 @@ const elements = {
     togetherYears: document.getElementById('togetherYears'),
     togetherMonths: document.getElementById('togetherMonths'),
     togetherDays: document.getElementById('togetherDays'),
+    togetherHours: document.getElementById('togetherHours'),
+    togetherMinutes: document.getElementById('togetherMinutes'),
+    togetherSeconds: document.getElementById('togetherSeconds'),
     lightbox: document.getElementById('lightbox'),
     lightboxImage: document.getElementById('lightboxImage'),
     lightboxCaption: document.getElementById('lightboxCaption'),
@@ -55,7 +58,13 @@ const elements = {
     bgMusic: document.getElementById('bgMusic'),
     footerDate: document.getElementById('footerDate'),
     floatingHearts: document.getElementById('floatingHearts'),
-    galleryGrid: document.getElementById('galleryGrid'),
+    progressBar: document.getElementById('progressBar'),
+    progressText: document.getElementById('progressText'),
+    petalContainer: document.getElementById('petalContainer'),
+    slideshowContainer: document.getElementById('slideshowContainer'),
+    slideshowTrack: document.getElementById('slideshowTrack'),
+    slideshowDots: document.getElementById('slideshowDots'),
+    slideshowToggle: document.getElementById('slideshowToggle'),
     letterContainer: document.getElementById('letterContainer')
 };
 
@@ -395,9 +404,17 @@ class CountdownTimer {
             months += 12;
         }
 
+        // Live clock - hours, minutes, seconds from current time
+        const hours = h;
+        const minutes = min;
+        const seconds = s;
+
         if (elements.togetherYears) elements.togetherYears.textContent = years;
         if (elements.togetherMonths) elements.togetherMonths.textContent = months;
         if (elements.togetherDays) elements.togetherDays.textContent = days2;
+        if (elements.togetherHours) elements.togetherHours.textContent = hours;
+        if (elements.togetherMinutes) elements.togetherMinutes.textContent = minutes;
+        if (elements.togetherSeconds) elements.togetherSeconds.textContent = seconds;
     }
 
     ordinal(n) {
@@ -439,60 +456,153 @@ class MilestonesAnimator {
 }
 
 // ========================================
-// Gallery
+// Scroll Reveal
 // ========================================
-class Gallery {
+class ScrollReveal {
     constructor() {
-        this.items = document.querySelectorAll('.gallery-item');
-        this.bindEvents();
-    }
-
-    bindEvents() {
-        this.items.forEach(item => {
-            item.addEventListener('click', () => {
-                const img = item.querySelector('img');
-                const caption = item.querySelector('.gallery-caption')?.textContent || '';
-                this.openLightbox(img.src, caption);
+        this.revealElements = document.querySelectorAll('.reveal');
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
             });
-        });
+        }, { threshold: 0.1 });
         
-        document.querySelector('.lightbox-close').addEventListener('click', () => this.closeLightbox());
-        elements.lightbox.addEventListener('click', (e) => {
-            if (e.target === elements.lightbox) this.closeLightbox();
-        });
-    }
-
-    openLightbox(src, caption) {
-        elements.lightboxImage.src = src;
-        elements.lightboxCaption.textContent = caption;
-        elements.lightbox.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    closeLightbox() {
-        elements.lightbox.classList.remove('active');
-        document.body.style.overflow = '';
+        this.revealElements.forEach(el => this.observer.observe(el));
     }
 }
 
 // ========================================
-// Love Letter Reveal
+// Photo Slideshow
 // ========================================
-class LoveLetterReveal {
+class PhotoSlideshow {
     constructor() {
-        this.paragraphs = document.querySelectorAll('.letter-paragraph');
+        this.track = elements.slideshowTrack;
+        this.dotsContainer = elements.slideshowDots;
+        this.toggleBtn = elements.slideshowToggle;
+        this.slides = this.track.querySelectorAll('.slideshow-slide');
+        this.currentIndex = 0;
+        this.interval = 4000;
+        this.timer = null;
+        this.isPlaying = true;
+        this.init();
+    }
+
+    init() {
+        if (this.slides.length === 0) return;
+        this.createDots();
+        this.showSlide(0);
+        this.bindEvents();
+        this.startAutoPlay();
+    }
+
+    createDots() {
+        this.slides.forEach((_, i) => {
+            const dot = document.createElement('span');
+            dot.className = 'dot';
+            dot.dataset.index = i;
+            this.dotsContainer.appendChild(dot);
+        });
+    }
+
+    showSlide(index) {
+        this.slides.forEach(s => s.classList.remove('active'));
+        this.slides[index].classList.add('active');
+        const dots = this.dotsContainer.querySelectorAll('.dot');
+        dots.forEach(d => d.classList.remove('active'));
+        dots[index].classList.add('active');
+    }
+
+    nextSlide() {
+        this.currentIndex = (this.currentIndex + 1) % this.slides.length;
+        this.showSlide(this.currentIndex);
+    }
+
+    startAutoPlay() {
+        if (this.timer) clearInterval(this.timer);
+        this.timer = setInterval(() => this.nextSlide(), this.interval);
+        this.isPlaying = true;
+        if (this.toggleBtn) this.toggleBtn.textContent = '⏸';
+    }
+
+    stopAutoPlay() {
+        clearInterval(this.timer);
+        this.timer = null;
+        this.isPlaying = false;
+        if (this.toggleBtn) this.toggleBtn.textContent = '▶';
+    }
+
+    togglePlay() {
+        this.isPlaying ? this.stopAutoPlay() : this.startAutoPlay();
+    }
+
+    goToSlide(index) {
+        this.currentIndex = index;
+        this.showSlide(index);
+        if (this.isPlaying) {
+            clearInterval(this.timer);
+            this.timer = setInterval(() => this.nextSlide(), this.interval);
+        }
+    }
+
+    bindEvents() {
+        if (this.toggleBtn) {
+            this.toggleBtn.addEventListener('click', () => this.togglePlay());
+        }
+        this.dotsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('dot')) {
+                this.goToSlide(parseInt(e.target.dataset.index));
+            }
+        });
+        this.slides.forEach(slide => {
+            slide.addEventListener('click', () => {
+                const img = slide.querySelector('img');
+                if (img) {
+                    const caption = slide.dataset.caption || '';
+                    elements.lightboxImage.src = img.src;
+                    elements.lightboxCaption.textContent = caption;
+                    elements.lightbox.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+        });
+    }
+}
+
+// ========================================
+// Typewriter Effect
+// ========================================
+class TypewriterEffect {
+    constructor() {
+        this.paragraphs = document.querySelectorAll('.letter-paragraph[data-text]');
+        this.speed = 50;
         this.observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const revealOrder = entry.target.dataset.reveal;
-                    setTimeout(() => {
-                        entry.target.classList.add('visible');
-                    }, revealOrder * 200);
+                if (entry.isIntersecting && !entry.target.dataset.typed) {
+                    entry.target.dataset.typed = 'true';
+                    this.typeText(entry.target);
                 }
             });
         }, { threshold: 0.3 });
-        
         this.paragraphs.forEach(p => this.observer.observe(p));
+    }
+
+    typeText(element) {
+        const text = element.dataset.text;
+        element.textContent = '';
+        element.classList.add('typing');
+        let index = 0;
+        const type = () => {
+            if (index < text.length) {
+                element.textContent += text.charAt(index);
+                index++;
+                setTimeout(type, this.speed);
+            } else {
+                element.classList.remove('typing');
+            }
+        };
+        type();
     }
 }
 
@@ -597,10 +707,12 @@ class KeyboardShortcuts {
             elements.bgMusic.pause();
             if (fabMusic) fabMusic.textContent = '🎵';
             if (fabMusic) fabMusic.classList.remove('playing');
+            if (window.audioWave) window.audioWave.hide();
         } else {
             elements.bgMusic.play().catch(() => {});
             if (fabMusic) fabMusic.textContent = '🎶';
             if (fabMusic) fabMusic.classList.add('playing');
+            if (window.audioWave) window.audioWave.show();
         }
         this.musicPlaying = !this.musicPlaying;
     }
@@ -691,15 +803,276 @@ class HeroImage3D {
 }
 
 // ========================================
-// Loader
+// Long Press Hidden Message
 // ========================================
-class Loader {
+class LongPress {
     constructor() {
+        this.heroImage = document.getElementById('heroImage');
+        this.overlay = document.getElementById('secretOverlay');
+        this.timer = null;
+        this.hint = document.getElementById('longPressHint');
         this.bindEvents();
     }
 
     bindEvents() {
+        if (!this.heroImage || !this.overlay) return;
+
+        // Mouse events
+        this.heroImage.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.startTimer();
+        });
+
+        this.heroImage.addEventListener('mouseup', () => this.cancelTimer());
+        this.heroImage.addEventListener('mouseleave', () => this.cancelTimer());
+
+        // Touch events
+        this.heroImage.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.startTimer();
+        }, { passive: false });
+
+        this.heroImage.addEventListener('touchend', () => this.cancelTimer());
+        this.heroImage.addEventListener('touchcancel', () => this.cancelTimer());
+
+        // Dismiss overlay
+        this.overlay.addEventListener('click', () => this.hideOverlay());
+        this.overlay.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.hideOverlay();
+        });
+    }
+
+    startTimer() {
+        this.timer = setTimeout(() => {
+            this.showOverlay();
+        }, 500);
+    }
+
+    cancelTimer() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+    }
+
+    showOverlay() {
+        this.overlay.classList.add('show');
+        if (this.hint) this.hint.style.opacity = '0';
+    }
+
+    hideOverlay() {
+        this.overlay.classList.remove('show');
+    }
+}
+
+// ========================================
+// Audio Wave Visualizer
+// ========================================
+class AudioWave {
+    constructor() {
+        this.wave = document.getElementById('audioWave');
+    }
+
+    show() {
+        if (this.wave) this.wave.classList.add('playing');
+    }
+
+    hide() {
+        if (this.wave) this.wave.classList.remove('playing');
+    }
+}
+
+// ========================================
+// Preloader with Progress
+// ========================================
+class Preloader {
+    constructor() {
+        this.progressBar = elements.progressBar;
+        this.progressText = elements.progressText;
+        this.progress = 0;
+        this.totalAssets = 0;
+        this.loadedAssets = 0;
+        this.isComplete = false;
+        this.trackAssets();
+    }
+
+    trackAssets() {
+        const images = document.querySelectorAll('img');
+        const audio = document.querySelectorAll('audio');
+        const totalImages = images.length;
+        const totalAudio = audio.length;
+        this.totalAssets = totalImages + totalAudio + 1;
+
+        if (totalImages === 0 && totalAudio === 0) {
+            this.simulateProgress();
+            return;
+        }
+
+        images.forEach(img => {
+            if (img.complete) {
+                this.assetLoaded();
+            } else {
+                img.addEventListener('load', () => this.assetLoaded());
+                img.addEventListener('error', () => this.assetLoaded());
+            }
+        });
+
+        audio.forEach(a => {
+            if (a.readyState >= 2) {
+                this.assetLoaded();
+            } else {
+                a.addEventListener('canplaythrough', () => this.assetLoaded());
+                a.addEventListener('error', () => this.assetLoaded());
+            }
+        });
+
+        this.loadFonts();
+    }
+
+    loadFonts() {
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => this.assetLoaded());
+        } else {
+            setTimeout(() => this.assetLoaded(), 1000);
+        }
+    }
+
+    assetLoaded() {
+        this.loadedAssets++;
+        this.progress = Math.min(100, Math.round((this.loadedAssets / this.totalAssets) * 100));
+        this.updateUI();
+        if (this.loadedAssets >= this.totalAssets) {
+            this.isComplete = true;
+            setTimeout(() => this.autoDismiss(), 800);
+        }
+    }
+
+    simulateProgress() {
+        const interval = setInterval(() => {
+            this.progress += Math.random() * 15 + 5;
+            if (this.progress >= 100) {
+                this.progress = 100;
+                this.isComplete = true;
+                clearInterval(interval);
+                setTimeout(() => this.autoDismiss(), 800);
+            }
+            this.updateUI();
+        }, 300);
+    }
+
+    updateUI() {
+        if (this.progressBar) this.progressBar.style.width = this.progress + '%';
+        if (this.progressText) this.progressText.textContent = this.progress + '%';
+    }
+
+    autoDismiss() {
+        const loader = document.getElementById('loader');
+        if (loader && !loader.classList.contains('hidden')) {
+            loader.click();
+        }
+    }
+}
+
+// ========================================
+// Parallax Scrolling
+// ========================================
+class ParallaxScroll {
+    constructor() {
+        this.elements = document.querySelectorAll('[data-parallax]');
+        this.ticking = false;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        window.addEventListener('scroll', () => {
+            if (!this.ticking) {
+                requestAnimationFrame(() => {
+                    this.update();
+                    this.ticking = false;
+                });
+                this.ticking = true;
+            }
+        });
+    }
+
+    update() {
+        const scrollY = window.scrollY;
+        this.elements.forEach(el => {
+            const speed = parseFloat(el.dataset.parallax) || 0.5;
+            const yPos = scrollY * speed;
+            el.style.transform = `translate3d(0, ${yPos}px, 0)`;
+        });
+    }
+}
+
+// ========================================
+// Cherry Blossom Petal Rain
+// ========================================
+class PetalRain {
+    constructor(container) {
+        this.container = container;
+        this.petals = ['🌸', '🌺'];
+        this.interval = 600;
+        this.timer = null;
+        if (!container) return;
+        this.start();
+    }
+
+    createPetal() {
+        const petal = document.createElement('div');
+        petal.className = 'petal';
+        petal.textContent = this.petals[Math.floor(Math.random() * this.petals.length)];
+        const size = Math.random() * 20 + 15;
+        const startX = Math.random() * 100;
+        const duration = Math.random() * 7 + 10;
+        const delay = Math.random() * 3;
+        petal.style.cssText = `
+            left: ${startX}%;
+            width: ${size}px;
+            height: ${size}px;
+            font-size: ${size}px;
+            animation-duration: ${duration}s;
+            animation-delay: ${delay}s;
+            opacity: ${Math.random() * 0.4 + 0.6};
+        `;
+        this.container.appendChild(petal);
+        setTimeout(() => petal.remove(), (duration + delay) * 1000);
+    }
+
+    start() {
+        this.createPetal();
+        this.timer = setInterval(() => this.createPetal(), this.interval);
+    }
+
+    stop() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+    }
+}
+
+// ========================================
+// Loader
+// ========================================
+class Loader {
+    constructor(preloader) {
+        this.preloader = preloader;
+        this.bindEvents();
+        this.autoCheck();
+    }
+
+    bindEvents() {
         elements.loader.addEventListener('click', () => this.hide());
+    }
+
+    autoCheck() {
+        const check = () => {
+            if (this.preloader && this.preloader.isComplete) {
+                this.hide();
+            } else {
+                setTimeout(check, 500);
+            }
+        };
+        setTimeout(check, 3000);
     }
 
     hide() {
@@ -735,19 +1108,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const particleSystem = new ParticleSystem(elements.canvas);
     const customCursor = new CustomCursor();
     const floatingHearts = new FloatingHearts(elements.floatingHearts);
-    const loader = new Loader();
+    const preloader = new Preloader();
+    const loader = new Loader(preloader);
     
     // Initialize after loader
+    const parallaxScroll = new ParallaxScroll();
+    const petalRain = new PetalRain(elements.petalContainer);
     const quotesCarousel = new QuotesCarousel();
     const countdownTimer = new CountdownTimer();
     const milestonesAnimator = new MilestonesAnimator();
-    const gallery = new Gallery();
-    const loveLetterReveal = new LoveLetterReveal();
+    const scrollReveal = new ScrollReveal();
+    const photoSlideshow = new PhotoSlideshow();
+    
+    // Lightbox close handlers
+    document.querySelector('.lightbox-close')?.addEventListener('click', () => {
+        elements.lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+    elements.lightbox?.addEventListener('click', (e) => {
+        if (e.target === elements.lightbox) {
+            elements.lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+    
+    const typewriterEffect = new TypewriterEffect();
     const confetti = new ConfettiEffect();
     const dayNightMode = new DayNightMode();
     const keyboardShortcuts = new KeyboardShortcuts(confetti);
     const navigation = new Navigation();
     const heroImage3D = new HeroImage3D();
+    const longPress = new LongPress();
+    window.audioWave = new AudioWave();
+    window.musicShortcut = keyboardShortcuts;
     
     // Update footer date
     updateFooterDate();
