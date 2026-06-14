@@ -377,6 +377,7 @@ class CountdownTimer {
         this.animate(elements.seconds, seconds);
 
         // Milestone label
+        const totalYears = y - this.startY;
         const nextYear = totalYears + 1;
         const labelEl = document.getElementById('nextMilestoneLabel');
         if (labelEl) labelEl.textContent = `🎉 Next: ${nextYear}${this.ordinal(nextYear)} Anniversary — 14/06/${nextY}`;
