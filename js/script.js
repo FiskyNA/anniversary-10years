@@ -895,6 +895,18 @@ class Preloader {
         this.loadedAssets = 0;
         this.isComplete = false;
         this.trackAssets();
+        this.safetyTimer();
+    }
+
+    safetyTimer() {
+        setTimeout(() => {
+            if (!this.isComplete) {
+                this.progress = 100;
+                this.loadedAssets = this.totalAssets;
+                this.isComplete = true;
+                this.updateUI();
+            }
+        }, 12000);
     }
 
     trackAssets() {
